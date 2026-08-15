@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="vi" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LuckyPicker & TeamCraft - Web App Random Tên & Chia Team Đỉnh Cao</title>
+  <meta name="description" content="Ứng dụng quay tên ngẫu nhiên, vòng quay may mắn, chia team thông minh, ghép đôi bí mật và minigame hiện đại, sống động.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=Outfit:wght@500;700;800;900&display=swap" rel="stylesheet">
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Canvas Confetti -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <!-- html2canvas for team image export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <!-- Header / Navigation Bar -->
+  <header class="app-header">
+    <div class="header-container">
+      <div class="logo-group">
+        <div class="logo-icon">
+          <i data-lucide="sparkles"></i>
+        </div>
+        <div class="logo-text">
+          <span class="logo-title">LuckyPicker <span class="badge-pro">PRO</span></span>
+          <span class="logo-subtitle">& TeamCraft Studio</span>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <nav class="nav-tabs" id="mainNav">
+        <button class="nav-tab active" data-tab="teams" id="tabBtnTeams">
+          <i data-lucide="users-round"></i>
+          <span>Chia Team</span>
+        </button>
+        <button class="nav-tab" data-tab="wheel" id="tabBtnWheel">
+          <i data-lucide="disc-3"></i>
+          <span>Vòng Quay</span>
+        </button>
+        <button class="nav-tab" data-tab="slot" id="tabBtnSlot">
+          <i data-lucide="dices"></i>
+          <span>Máy Quay Xèng</span>
+        </button>
+        <button class="nav-tab" data-tab="cards" id="tabBtnCards">
+          <i data-lucide="layers"></i>
+          <span>Thẻ Bí Ẩn</span>
+        </button>
+        <button class="nav-tab" data-tab="santa" id="tabBtnSanta">
+          <i data-lucide="gift"></i>
+          <span>Ghép Đôi & Quà</span>
+        </button>
+        <button class="nav-tab" data-tab="tools" id="tabBtnTools">
+          <i data-lucide="gamepad-2"></i>
+          <span>Minigame</span>
+        </button>
+      </nav>
+
+      <!-- Quick Actions Header (Sound, Theme, Saved Lists) -->
+      <div class="header-actions">
+        <button class="btn-icon" id="btnToggleSound" title="Bật/Tắt Âm thanh">
+          <i data-lucide="volume-2" id="soundIcon"></i>
+        </button>
+        <button class="btn-icon" id="btnToggleTheme" title="Chuyển chế độ Sáng/Tối">
+          <i data-lucide="sun" id="themeIcon"></i>
+        </button>
+        <button class="btn-secondary btn-sm" id="btnOpenPresets">
+          <i data-lucide="folder-heart"></i>
+          <span class="hide-mobile">Danh Sách Mẫu</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Layout -->
+  <main class="app-main">
+    <div class="app-container">
+      
+      <!-- LEFT SIDEBAR: Shared Name List & Quick Utilities -->
+      <aside class="sidebar-names">
+        <div class="panel glass-card">
+          <div class="panel-header">
+            <div class="panel-title">
+              <i data-lucide="list-ordered"></i>
+              <span>Danh Sách Tham Gia</span>
+            </div>
+            <span class="badge-counter" id="namesCountBadge">0 người</span>
+          </div>
+
+          <!-- Quick Actions for Name Input -->
+          <div class="name-actions-row">
+            <button class="btn-chip" id="btnQuickSample" title="Nạp danh sách mẫu nhanh">
+              <i data-lucide="wand-2"></i> Mẫu thử
+            </button>
+            <button class="btn-chip" id="btnShuffleNames" title="Trộn ngẫu nhiên danh sách">
+              <i data-lucide="shuffle"></i> Xáo trộn
+            </button>
+            <button class="btn-chip" id="btnSortNames" title="Sắp xếp A-Z">
+              <i data-lucide="arrow-down-a-z"></i> A-Z
+            </button>
+            <button class="btn-chip text-danger" id="btnClearNames" title="Xóa toàn bộ">
+              <i data-lucide="trash-2"></i> Xóa
+            </button>
+          </div>
+
+          <!-- Textarea for Names -->
+          <div class="textarea-container">
+            <textarea id="namesInput" placeholder="Nhập hoặc dán tên (mỗi người 1 dòng hoặc cách nhau bằng dấu phẩy)...&#10;Ví dụ:&#10;Nguyễn Văn An&#10;Trần Thị Bình&#10;Lê Hoàng Cường&#10;Phạm Minh Đức&#10;Hoàng Mai Anh"></textarea>
+          </div>
+
+          <!-- Quick Import / Export & File Drop -->
+          <div class="sidebar-footer">
+            <label class="btn-outline btn-block" for="fileInputUpload">
+              <i data-lucide="file-up"></i>
+              <span>Tải file TXT / CSV / Excel</span>
+            </label>
+            <input type="file" id="fileInputUpload" accept=".txt,.csv" style="display:none;">
+
+            <div class="preset-save-box">
+              <input type="text" id="presetNameInput" placeholder="Tên danh sách mới..." class="input-flat">
+              <button class="btn-primary btn-sm" id="btnSavePreset" title="Lưu danh sách vào bộ nhớ">
+                <i data-lucide="bookmark-plus"></i> Lưu
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mini Stats & Quick Options -->
+        <div class="panel glass-card settings-mini-card">
+          <div class="form-check-inline">
+            <input type="checkbox" id="chkRemoveWinner" class="custom-toggle">
+            <label for="chkRemoveWinner">
+              <span>Loại trừ người đã trúng thưởng</span>
+              <small>Tự động bỏ tên sau khi quay trúng</small>
+            </label>
+          </div>
+        </div>
+      </aside>
+
+      <!-- RIGHT AREA: Active Tab Contents -->
+      <section class="main-workspace">
+        
+        <!-- ================= TAB 1: CHIA TEAM THÔNG MINH ================= -->
+        <div class="tab-pane active" id="pane-teams">
+          <div class="glass-card panel-hero">
+            <div class="hero-top">
+              <div>
+                <h1 class="page-title">
+                  <i data-lucide="users-round" class="text-accent"></i>
+                  Phân Chia Đội Nhóm Thông Minh
+                </h1>
+                <p class="page-desc">Tùy biến chia theo số đội hoặc số người, gán đội trưởng, đặt tên ngẫu nhiên & xuất kết quả đẹp mắt.</p>
+              </div>
+              <div class="team-config-controls">
+                <div class="mode-toggle-pill">
+                  <button class="pill-btn active" id="btnModeNumTeams" data-mode="teams">Chia theo Số Đội</button>
+                  <button class="pill-btn" id="btnModeSizeTeam" data-mode="size">Chia theo Số Người/Đội</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Team Configuration Controls -->
+            <div class="team-settings-grid">
+              <div class="setting-item">
+                <label id="lblTeamCount" for="numTeamInput">Số lượng đội cần chia:</label>
+                <div class="number-stepper">
+                  <button class="stepper-btn" id="btnDecTeam">-</button>
+                  <input type="number" id="numTeamInput" min="2" max="50" value="2" class="input-stepper">
+                  <button class="stepper-btn" id="btnIncTeam">+</button>
+                </div>
+              </div>
+
+              <div class="setting-item">
+                <label for="selTeamTheme">Chủ đề đặt tên đội:</label>
+                <select id="selTeamTheme" class="custom-select">
+                  <option value="superheroes">🦸‍♂️ Siêu Anh Hùng (Avengers, X-Men)</option>
+                  <option value="gems">💎 Đá Quý & Kim Cương</option>
+                  <option value="mythical">🐉 Thần Thoại & Rồng Thần</option>
+                  <option value="galaxies">🌌 Vũ Trụ & Thiên Hà</option>
+                  <option value="fruits">🍉 Trái Cây Cute</option>
+                  <option value="colors">🎨 Bảng Màu Rực Rỡ</option>
+                  <option value="classic">🔢 Đội 1, Đội 2, Đội 3...</option>
+                </select>
+              </div>
+
+              <div class="setting-item chk-setting">
+                <label class="custom-checkbox-label">
+                  <input type="checkbox" id="chkRandomLeader" checked>
+                  <span class="checkbox-mark"></span>
+                  <span>Chỉ định ngẫu nhiên <strong>Đội Trưởng</strong> 👑</span>
+                </label>
+              </div>
+
+              <div class="setting-item action-generate">
+                <button class="btn-primary btn-lg btn-glow" id="btnGenerateTeams">
+                  <i data-lucide="sparkles"></i>
+                  <span>BẮT ĐẦU CHIA TEAM</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Team Result Header & Action Bar -->
+          <div class="teams-result-toolbar" id="teamsToolbar" style="display: none;">
+            <div class="toolbar-info">
+              <span class="text-muted" id="teamSummaryText">Đã chia thành 0 đội</span>
+              <span class="tip-drag"><i data-lucide="move"></i> Có thể kéo thả tên để đổi đội</span>
+            </div>
+            <div class="toolbar-actions">
+              <button class="btn-secondary btn-sm" id="btnCopyTeamText">
+                <i data-lucide="copy"></i> Copy Kết Quả
+              </button>
+              <button class="btn-secondary btn-sm" id="btnExportTeamImage">
+                <i data-lucide="image-down"></i> Tải Ảnh Đẹp
+              </button>
+              <button class="btn-outline btn-sm" id="btnReShuffleTeams">
+                <i data-lucide="refresh-cw"></i> Chia Lại
+              </button>
+            </div>
+          </div>
+
+          <!-- Team Results Container Grid -->
+          <div class="teams-grid-container" id="teamsResultContainer">
+            <div class="empty-state">
+              <div class="empty-icon"><i data-lucide="users"></i></div>
+              <h3>Chưa có dữ liệu đội nhóm</h3>
+              <p>Nhập danh sách tên ở bên trái và bấm <strong>BẮT ĐẦU CHIA TEAM</strong> để xem kết quả!</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- ================= TAB 2: VÒNG QUAY MAY MẮN ================= -->
+        <div class="tab-pane" id="pane-wheel">
+          <div class="wheel-layout">
+            <!-- Canvas Wheel Area -->
+            <div class="wheel-stage-card glass-card">
+              <div class="wheel-canvas-wrapper">
+                <div class="wheel-pointer-arrow">
+                  <div class="arrow-inner"></div>
+                </div>
+                <canvas id="wheelCanvas" width="550" height="550"></canvas>
+                <button class="wheel-center-spin-btn" id="btnSpinCenter">
+                  <span>QUAY</span>
+                  <i data-lucide="play"></i>
+                </button>
+              </div>
+              <div class="wheel-bottom-controls">
+                <button class="btn-primary btn-xl btn-glow" id="btnSpinWheel">
+                  <i data-lucide="sparkles"></i> QUAY NGAY (SPACE)
+                </button>
+              </div>
+            </div>
+
+            <!-- Wheel Winners & Realtime History -->
+            <div class="wheel-history-card glass-card">
+              <div class="panel-header">
+                <div class="panel-title">
+                  <i data-lucide="trophy" class="text-accent"></i>
+                  <span>Lịch Sử Trúng Thưởng</span>
+                </div>
+                <button class="btn-chip text-danger" id="btnClearWheelHistory">
+                  <i data-lucide="trash"></i> Xóa
+                </button>
+              </div>
+              <div class="history-list-box" id="wheelHistoryList">
+                <div class="empty-history">Chưa có lượt quay nào</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ================= TAB 3: MÁY QUAY XÈNG (SLOT MACHINE) ================= -->
+        <div class="tab-pane" id="pane-slot">
+          <div class="glass-card slot-machine-card">
+            <div class="slot-header">
+              <h2 class="slot-title"><i data-lucide="dices"></i> Máy Quay Số Casino Thần Tài</h2>
+              <div class="slot-options">
+                <label for="numWinnersSlot">Số người trúng cùng lúc:</label>
+                <select id="numWinnersSlot" class="custom-select-sm">
+                  <option value="1">1 Người</option>
+                  <option value="2">2 Người</option>
+                  <option value="3">3 Người</option>
+                  <option value="5">5 Người</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Slot Machine Reels Display -->
+            <div class="slot-display-stage" id="slotDisplayStage">
+              <div class="slot-reel-box">
+                <div class="slot-reel-inner" id="slotReelInner">
+                  <div class="slot-item-placeholder">? ? ?</div>
+                </div>
+                <div class="slot-overlay-glow"></div>
+              </div>
+            </div>
+
+            <!-- Slot Controls -->
+            <div class="slot-controls-bar">
+              <button class="btn-primary btn-xl btn-glow" id="btnRollSlot">
+                <i data-lucide="flame"></i> GIẬT CẦN QUAY
+              </button>
+            </div>
+
+            <!-- Multi Winner Result Box -->
+            <div class="slot-winners-grid" id="slotWinnersGrid" style="display: none;"></div>
+          </div>
+        </div>
+
+        <!-- ================= TAB 4: THẺ BÀI BÍ ẨN (MYSTERY CARDS) ================= -->
+        <div class="tab-pane" id="pane-cards">
+          <div class="glass-card cards-hero-card">
+            <div class="cards-header-bar">
+              <div>
+                <h2><i data-lucide="layers" class="text-accent"></i> Lật Thẻ Bài Bốc Thăm Bí Mật</h2>
+                <p class="text-muted">Chọn các thẻ bài úp để mở ra người may mắn hoặc phân bổ vị trí.</p>
+              </div>
+              <div class="cards-actions">
+                <button class="btn-secondary btn-sm" id="btnGenerateCards">
+                  <i data-lucide="refresh-cw"></i> Tạo Bộ Thẻ
+                </button>
+                <button class="btn-outline btn-sm" id="btnRevealAllCards">
+                  <i data-lucide="eye"></i> Lật Mở Tất Cả
+                </button>
+              </div>
+            </div>
+
+            <div class="mystery-cards-grid" id="mysteryCardsContainer">
+              <div class="empty-state">
+                <div class="empty-icon"><i data-lucide="layers"></i></div>
+                <h3>Chưa tạo bộ thẻ</h3>
+                <p>Nhập tên và nhấn <strong>Tạo Bộ Thẻ</strong> để bắt đầu bốc thăm!</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ================= TAB 5: GHÉP ĐÔI & SECRET SANTA ================= -->
+        <div class="tab-pane" id="pane-santa">
+          <div class="glass-card santa-hero-card">
+            <div class="santa-top-nav">
+              <div class="mode-toggle-pill">
+                <button class="pill-btn active" id="btnSubTabPairing" data-subtab="pair">Ghép Đôi 1-1 (Pairs)</button>
+                <button class="pill-btn" id="btnSubTabSanta" data-subtab="santa">Bốc Thăm Quà Bí Mật (Secret Santa 🎁)</button>
+              </div>
+              <button class="btn-primary btn-sm" id="btnExecutePairing">
+                <i data-lucide="sparkles"></i> Bắt Đầu Ghép
+              </button>
+            </div>
+
+            <div class="pairing-content-area" id="pairingContentArea">
+              <!-- Rendered Pairings or Secret Santa chain -->
+              <div class="empty-state">
+                <div class="empty-icon"><i data-lucide="gift"></i></div>
+                <h3>Chưa thực hiện ghép đôi</h3>
+                <p>Chọn chế độ ghép và nhấn <strong>Bắt Đầu Ghép</strong>!</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ================= TAB 6: MINIGAME & TIỆN ÍCH ================= -->
+        <div class="tab-pane" id="pane-tools">
+          <div class="tools-grid-layout">
+            
+            <!-- Tool 1: Tung Đồng Xu 3D -->
+            <div class="glass-card tool-card">
+              <div class="tool-card-header">
+                <h3><i data-lucide="circle-dot"></i> Tung Đồng Xu (Coin Flip)</h3>
+                <span class="badge-mini" id="coinResultBadge">Sẵn sàng</span>
+              </div>
+              <div class="coin-stage">
+                <div class="coin-3d" id="coin3D">
+                  <div class="coin-face coin-front">
+                    <span>SẤP</span>
+                    <i data-lucide="crown"></i>
+                  </div>
+                  <div class="coin-face coin-back">
+                    <span>NGỬA</span>
+                    <i data-lucide="sparkles"></i>
+                  </div>
+                </div>
+              </div>
+              <button class="btn-primary btn-block" id="btnFlipCoin">
+                <i data-lucide="rotate-cw"></i> TUNG ĐỒNG XU
+              </button>
+            </div>
+
+            <!-- Tool 2: Đổ Xúc Xắc 3D -->
+            <div class="glass-card tool-card">
+              <div class="tool-card-header">
+                <h3><i data-lucide="dice-5"></i> Lắc Xúc Xắc (Dice)</h3>
+                <div class="dice-count-select">
+                  <label>Số viên:</label>
+                  <select id="selDiceCount" class="custom-select-sm">
+                    <option value="1">1 Viên</option>
+                    <option value="2" selected>2 Viên</option>
+                    <option value="3">3 Viên</option>
+                    <option value="4">4 Viên</option>
+                  </select>
+                </div>
+              </div>
+              <div class="dice-stage" id="diceStage">
+                <!-- Dice elements rendered dynamically -->
+              </div>
+              <div class="dice-total-display">
+                Tổng điểm: <strong id="diceTotalPoints" class="text-accent">0</strong>
+              </div>
+              <button class="btn-primary btn-block" id="btnRollDice">
+                <i data-lucide="dices"></i> LẮC XÚC XẮC
+              </button>
+            </div>
+
+            <!-- Tool 3: Quay Số Ngẫu Nhiên (RNG Min-Max) -->
+            <div class="glass-card tool-card">
+              <div class="tool-card-header">
+                <h3><i data-lucide="hash"></i> Bốc Số Ngẫu Nhiên (Min - Max)</h3>
+              </div>
+              <div class="rng-inputs-row">
+                <div>
+                  <label for="rngMin">Từ số (Min):</label>
+                  <input type="number" id="rngMin" value="1" class="input-flat">
+                </div>
+                <div>
+                  <label for="rngMax">Đến số (Max):</label>
+                  <input type="number" id="rngMax" value="100" class="input-flat">
+                </div>
+                <div>
+                  <label for="rngCount">Số lượng lấy:</label>
+                  <input type="number" id="rngCount" value="1" min="1" max="20" class="input-flat">
+                </div>
+              </div>
+              <div class="rng-result-stage" id="rngResultStage">
+                <div class="rng-number-huge" id="rngMainNumber">--</div>
+              </div>
+              <button class="btn-primary btn-block" id="btnGenerateRng">
+                <i data-lucide="sparkles"></i> RÚT SỐ MAY MẮN
+              </button>
+            </div>
+
+          </div>
+        </div>
+
+      </section>
+    </div>
+  </main>
+
+  <!-- ================= WINNER CELEBRATION MODAL ================= -->
+  <div class="modal-backdrop" id="winnerModal">
+    <div class="modal-dialog glass-card modal-celebration">
+      <button class="modal-close-btn" id="btnCloseWinnerModal">&times;</button>
+      <div class="celebration-animation-badge">
+        <div class="crown-glow"><i data-lucide="crown"></i></div>
+      </div>
+      <span class="winner-subtitle">XIN CHÚC MỪNG CHIẾN THẮNG</span>
+      <h2 class="winner-name-highlight" id="modalWinnerName">Nguyễn Văn A</h2>
+      <p class="winner-extra-info" id="modalWinnerInfo">Đã được chọn từ vòng quay may mắn!</p>
+      
+      <div class="modal-actions-group">
+        <button class="btn-secondary" id="btnWinnerRemove">
+          <i data-lucide="user-x"></i> Loại khỏi danh sách
+        </button>
+        <button class="btn-primary btn-glow" id="btnWinnerClose">
+          <i data-lucide="check"></i> Tuyệt Vời!
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= PRESETS MANAGER MODAL ================= -->
+  <div class="modal-backdrop" id="presetsModal">
+    <div class="modal-dialog glass-card modal-presets">
+      <div class="modal-header">
+        <h3><i data-lucide="folder-heart"></i> Quản Lý Danh Sách Mẫu</h3>
+        <button class="modal-close-btn" id="btnClosePresetsModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="preset-items-list" id="presetItemsList">
+          <!-- Dynamic preset items -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- App Scripts -->
+  <script src="js/audio.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/wheel.js"></script>
+  <script src="js/teams.js"></script>
+  <script src="js/slot.js"></script>
+  <script src="js/cards.js"></script>
+  <script src="js/tools.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
