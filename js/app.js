@@ -166,6 +166,13 @@ document.addEventListener('DOMContentLoaded', () => {
       if (targetTab === 'wheel') {
         luckyWheel.setNames(getNamesList());
       }
+      if (targetTab === 'slot') {
+        const count = parseInt(numWinnersSlot ? numWinnersSlot.value : '1', 10) || 1;
+        const reelsContainer = document.getElementById('slotReelsContainer');
+        if (window.slotMachine && (!reelsContainer || reelsContainer.children.length === 0)) {
+          window.slotMachine.setupReels(count, true);
+        }
+      }
       if (window.lucide) lucide.createIcons();
     });
   });
@@ -551,10 +558,12 @@ document.addEventListener('DOMContentLoaded', () => {
   // -------------------------------------------------------------
   // 7. Slot Machine Logic
   // -------------------------------------------------------------
-  if (numWinnersSlot) {
+   if (numWinnersSlot) {
     numWinnersSlot.addEventListener('change', () => {
       const count = parseInt(numWinnersSlot.value, 10) || 1;
-      slotMachine.setupReels(count);
+      if (window.slotMachine) {
+        window.slotMachine.setupReels(count, true);
+      }
     });
   }
 
@@ -568,37 +577,38 @@ document.addEventListener('DOMContentLoaded', () => {
     const numWinners = parseInt(numWinnersSlot.value, 10) || 1;
     btnRollSlot.disabled = true;
 
-    slotMachine.roll({
-      names,
-      numWinners,
-      onFinish: (winners) => {
-        btnRollSlot.disabled = false;
-        winners.forEach(w => dataManager.addWheelWinner(w, 'Máy quay số'));
-        renderWheelHistory();
+    if (window.slotMachine) {
+      window.slotMachine.roll({
+        names,
+        numWinners,
+        onFinish: (winners) => {
+          btnRollSlot.disabled = false;
+          winners.forEach(w => dataManager.addWheelWinner(w, 'Máy quay số'));
+          renderWheelHistory();
 
-        lastWinnerName = winners[0];
-        lastWinnersList = [...winners];
+          lastWinnerName = winners[0];
+          lastWinnersList = [...winners];
 
-        if (chkRemoveWinner.checked) {
-          removeWinnersFromNames(winners);
-          btnWinnerRemove.style.display = 'none';
-        } else {
-          btnWinnerRemove.style.display = 'inline-flex';
-        }
-
-        // Show celebration modal
-        if (modalWinnerName && winnerModal) {
-          if (winners.length === 1) {
-            modalWinnerName.textContent = winners[0];
-            modalWinnerInfo.textContent = 'Đã trúng thưởng từ Máy Quay Số Casino Thần Tài!';
+          if (chkRemoveWinner.checked) {
+            removeWinnersFromNames(winners);
+            btnWinnerRemove.style.display = 'none';
           } else {
-            modalWinnerName.textContent = winners.join(' • ');
-            modalWinnerInfo.textContent = `Chúc mừng ${winners.length} người may mắn trúng thưởng Máy Quay Số!`;
+            btnWinnerRemove.style.display = 'inline-flex';
           }
-          winnerModal.classList.add('open');
+
+          // Show celebration modal
+          if (modalWinnerName && winnerModal) {
+            modalWinnerName.textContent = winners.length === 1 ? winners[0] : winners.join(', ');
+            modalWinnerInfo.textContent = winners.length === 1 
+              ? 'Đã trúng thưởng từ Máy Quay Số Casino Thần Tài!' 
+              : `Chúc mừng ${winners.length} người may mắn trúng thưởng Máy Quay Số!`;
+            winnerModal.classList.add('open');
+          }
         }
-      }
-    });
+      });
+    } else {
+      btnRollSlot.disabled = false;
+    }
   });
 
   // -------------------------------------------------------------

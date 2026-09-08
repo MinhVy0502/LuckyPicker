@@ -12,16 +12,37 @@ class SlotMachine {
     this.tickTimer = null;
 
     // Initialize initial single reel if container exists
-    if (this.reelsContainer) {
-      this.setupReels(1);
+    if (this.reelsContainer && this.reelsContainer.children.length === 0) {
+      this.setupReels(1, true);
+    }
+  }
+
+  /**
+   * Re-queries DOM and initializes default state
+   */
+  init() {
+    this.displayStage = document.getElementById('slotDisplayStage');
+    this.reelsContainer = document.getElementById('slotReelsContainer');
+    this.winnersGrid = document.getElementById('slotWinnersGrid');
+    const selectEl = document.getElementById('numWinnersSlot');
+    const count = selectEl ? (parseInt(selectEl.value, 10) || 1) : 1;
+    if (this.reelsContainer && this.reelsContainer.children.length === 0) {
+      this.setupReels(count, true);
     }
   }
 
   /**
    * Dynamically configure reels based on selected number of winners
    */
-  setupReels(count = 1) {
-    if (this.isRolling || !this.reelsContainer) return;
+  setupReels(count = 1, force = false) {
+    if (!this.reelsContainer) {
+      this.reelsContainer = document.getElementById('slotReelsContainer');
+    }
+    if (!this.displayStage) {
+      this.displayStage = document.getElementById('slotDisplayStage');
+    }
+    if (!this.reelsContainer) return;
+    if (this.isRolling && !force) return;
 
     if (count > 1) {
       this.displayStage?.classList.add('multi-column');
@@ -75,14 +96,14 @@ class SlotMachine {
       chosenWinners.push(availableNames.splice(randIdx, 1)[0]);
     }
 
+    // Always ensure reels are set up before starting roll animation
+    this.setupReels(actualWinnersCount, true);
+
     this.isRolling = true;
     if (this.winnersGrid) {
       this.winnersGrid.style.display = 'none';
       this.winnersGrid.innerHTML = '';
     }
-
-    // Prepare reels
-    this.setupReels(actualWinnersCount);
 
     const baseDuration = 2300;
     const staggerDuration = 450;
@@ -197,3 +218,8 @@ class SlotMachine {
 }
 
 window.slotMachine = new SlotMachine();
+document.addEventListener('DOMContentLoaded', () => {
+  if (window.slotMachine) {
+    window.slotMachine.init();
+  }
+});

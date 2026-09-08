@@ -1228,10 +1228,11 @@ h1, h2, h3, h4, .logo-title, .pill-btn, .btn-primary, .btn-secondary {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: clamp(2rem, 5vw, 3rem);
+  font-size: clamp(2rem, 5vw, 3.2rem);
   font-weight: 900;
-  color: var(--text-muted);
-  letter-spacing: 6px;
+  color: #c7d2fe;
+  text-shadow: 0 0 16px rgba(99, 102, 241, 0.7), 0 0 30px rgba(168, 85, 247, 0.5);
+  letter-spacing: 8px;
 }
 
 .slot-overlay-glow {
