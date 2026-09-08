@@ -94,6 +94,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let activeTab = 'teams';
   let activeSantaSubTab = 'pair'; // 'pair' | 'santa'
   let lastWinnerName = '';
+  let lastWinnersList = [];
 
   // -------------------------------------------------------------
   // 1. Toast Notification Helper
@@ -134,11 +135,12 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function loadInitialNames() {
+    const rawStored = localStorage.getItem(dataManager.STORAGE_KEY_NAMES);
     const saved = dataManager.getCurrentNames();
-    if (saved && saved.length > 0) {
+    if (rawStored !== null && Array.isArray(saved)) {
       updateNames(saved);
     } else {
-      // Default to Sample 1
+      // Default to Sample 1 for first time visit
       const presets = dataManager.getPresets();
       if (presets.length > 0) {
         updateNames(presets[0].names);
@@ -363,12 +365,45 @@ document.addEventListener('DOMContentLoaded', () => {
   btnGenerateTeams.addEventListener('click', executeTeamGeneration);
   btnReShuffleTeams.addEventListener('click', executeTeamGeneration);
 
+  // Safe Clipboard Copy Helper
+  function copyToClipboard(text, successMessage) {
+    if (!text) return;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(() => {
+        showToast(successMessage);
+      }).catch(() => {
+        fallbackCopyText(text, successMessage);
+      });
+    } else {
+      fallbackCopyText(text, successMessage);
+    }
+  }
+
+  function fallbackCopyText(text, successMessage) {
+    try {
+      const tempArea = document.createElement('textarea');
+      tempArea.value = text;
+      tempArea.style.position = 'fixed';
+      tempArea.style.left = '-9999px';
+      tempArea.style.top = '0';
+      document.body.appendChild(tempArea);
+      tempArea.focus();
+      tempArea.select();
+      const successful = document.execCommand('copy');
+      document.body.removeChild(tempArea);
+      if (successful) {
+        showToast(successMessage);
+      } else {
+        showToast('Không thể tự động sao chép, vui lòng copy thủ công', 'error');
+      }
+    } catch (err) {
+      showToast('Không thể sao chép kết quả', 'error');
+    }
+  }
+
   btnCopyTeamText.addEventListener('click', () => {
     const text = teamGenerator.formatTeamsForClipboard();
-    if (!text) return;
-    navigator.clipboard.writeText(text).then(() => {
-      showToast('Đã copy danh sách đội vào Clipboard! Sẵn sàng dán vào Zalo/Messenger/Slack.');
-    });
+    copyToClipboard(text, 'Đã copy danh sách đội vào Clipboard! Sẵn sàng dán vào Zalo/Messenger/Slack.');
   });
 
   btnExportTeamImage.addEventListener('click', () => {
@@ -393,6 +428,7 @@ document.addEventListener('DOMContentLoaded', () => {
       btnSpinWheel.disabled = false;
       btnSpinCenter.disabled = false;
       lastWinnerName = winner;
+      lastWinnersList = [winner];
 
       // Celebrate
       if (window.soundEngine) soundEngine.playWinFanfare();
@@ -407,21 +443,31 @@ document.addEventListener('DOMContentLoaded', () => {
       // Show Winner Modal
       modalWinnerName.textContent = winner;
       modalWinnerInfo.textContent = `Đã trúng thưởng từ Vòng Quay May Mắn!`;
-      winnerModal.classList.add('open');
 
       // Auto remove if enabled
       if (chkRemoveWinner.checked) {
         removeWinnerFromNames(winner);
+        btnWinnerRemove.style.display = 'none';
+      } else {
+        btnWinnerRemove.style.display = 'inline-flex';
       }
+
+      winnerModal.classList.add('open');
     });
   }
 
   btnSpinWheel.addEventListener('click', triggerWheelSpin);
   btnSpinCenter.addEventListener('click', triggerWheelSpin);
 
-  // Spacebar to spin wheel
+  // Spacebar to spin wheel (ignores when typing in input fields)
   document.addEventListener('keydown', (e) => {
-    if (e.code === 'Space' && activeTab === 'wheel' && document.activeElement !== namesInput) {
+    const isEditingInput = document.activeElement && 
+      (document.activeElement.tagName === 'INPUT' || 
+       document.activeElement.tagName === 'TEXTAREA' || 
+       document.activeElement.tagName === 'SELECT' || 
+       document.activeElement.isContentEditable);
+
+    if (e.code === 'Space' && activeTab === 'wheel' && !isEditingInput) {
       e.preventDefault();
       triggerWheelSpin();
     }
@@ -438,6 +484,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <div class="history-item">
         <div class="history-left">
           <span class="history-name">🏆 ${item.name}</span>
+          ${item.mode ? `<small class="text-muted" style="margin-left: 6px; font-size: 0.75rem;">(${item.mode})</small>` : ''}
         </div>
         <span class="history-time">${item.time}</span>
       </div>
@@ -453,23 +500,64 @@ document.addEventListener('DOMContentLoaded', () => {
   btnCloseWinnerModal.addEventListener('click', () => winnerModal.classList.remove('open'));
   btnWinnerClose.addEventListener('click', () => winnerModal.classList.remove('open'));
 
-  btnWinnerRemove.addEventListener('click', () => {
-    if (lastWinnerName) {
-      removeWinnerFromNames(lastWinnerName);
+  winnerModal.addEventListener('click', (e) => {
+    if (e.target === winnerModal) winnerModal.classList.remove('open');
+  });
+
+  presetsModal.addEventListener('click', (e) => {
+    if (e.target === presetsModal) presetsModal.classList.remove('open');
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
       winnerModal.classList.remove('open');
-      showToast(`Đã loại "${lastWinnerName}" khỏi danh sách!`);
+      presetsModal.classList.remove('open');
     }
   });
 
-  function removeWinnerFromNames(nameToRemove) {
+  btnWinnerRemove.addEventListener('click', () => {
+    if (lastWinnersList.length > 0) {
+      removeWinnersFromNames(lastWinnersList);
+      const msg = lastWinnersList.length === 1 
+        ? `Đã loại "${lastWinnersList[0]}" khỏi danh sách!`
+        : `Đã loại ${lastWinnersList.length} người khỏi danh sách!`;
+      showToast(msg);
+      lastWinnersList = [];
+      lastWinnerName = '';
+      winnerModal.classList.remove('open');
+    } else if (lastWinnerName) {
+      removeWinnersFromNames([lastWinnerName]);
+      showToast(`Đã loại "${lastWinnerName}" khỏi danh sách!`);
+      lastWinnerName = '';
+      winnerModal.classList.remove('open');
+    }
+  });
+
+  // Batch remove winners safely with single DOM & storage write
+  function removeWinnersFromNames(winnersToRemove) {
+    if (!winnersToRemove) return;
+    const list = Array.isArray(winnersToRemove) ? winnersToRemove : [winnersToRemove];
+    if (!list.length) return;
+    const removeSet = new Set(list);
     const names = getNamesList();
-    const updated = names.filter(n => n !== nameToRemove);
+    const updated = names.filter(n => !removeSet.has(n));
     updateNames(updated);
+  }
+
+  function removeWinnerFromNames(nameToRemove) {
+    removeWinnersFromNames([nameToRemove]);
   }
 
   // -------------------------------------------------------------
   // 7. Slot Machine Logic
   // -------------------------------------------------------------
+  if (numWinnersSlot) {
+    numWinnersSlot.addEventListener('change', () => {
+      const count = parseInt(numWinnersSlot.value, 10) || 1;
+      slotMachine.setupReels(count);
+    });
+  }
+
   btnRollSlot.addEventListener('click', () => {
     const names = getNamesList();
     if (names.length === 0) {
@@ -488,12 +576,26 @@ document.addEventListener('DOMContentLoaded', () => {
         winners.forEach(w => dataManager.addWheelWinner(w, 'Máy quay số'));
         renderWheelHistory();
 
+        lastWinnerName = winners[0];
+        lastWinnersList = [...winners];
+
         if (chkRemoveWinner.checked) {
-          winners.forEach(w => removeWinnerFromNames(w));
+          removeWinnersFromNames(winners);
+          btnWinnerRemove.style.display = 'none';
+        } else {
+          btnWinnerRemove.style.display = 'inline-flex';
         }
 
-        if (typeof confetti === 'function') {
-          confetti({ particleCount: 120, spread: 90, origin: { y: 0.6 } });
+        // Show celebration modal
+        if (modalWinnerName && winnerModal) {
+          if (winners.length === 1) {
+            modalWinnerName.textContent = winners[0];
+            modalWinnerInfo.textContent = 'Đã trúng thưởng từ Máy Quay Số Casino Thần Tài!';
+          } else {
+            modalWinnerName.textContent = winners.join(' • ');
+            modalWinnerInfo.textContent = `Chúc mừng ${winners.length} người may mắn trúng thưởng Máy Quay Số!`;
+          }
+          winnerModal.classList.add('open');
         }
       }
     });
@@ -504,6 +606,10 @@ document.addEventListener('DOMContentLoaded', () => {
   // -------------------------------------------------------------
   btnGenerateCards.addEventListener('click', () => {
     const names = getNamesList();
+    if (names.length === 0) {
+      alert('Vui lòng nhập danh sách tên!');
+      return;
+    }
     cardsAndPairing.generateMysteryCards(names);
     if (window.soundEngine) soundEngine.playShuffle();
   });
@@ -529,12 +635,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   btnExecutePairing.addEventListener('click', () => {
     const names = getNamesList();
-    if (activeSantaSubTab === 'pair') {
-      cardsAndPairing.generatePairs(names);
-    } else {
-      cardsAndPairing.generateSecretSanta(names);
+    const success = (activeSantaSubTab === 'pair')
+      ? cardsAndPairing.generatePairs(names)
+      : cardsAndPairing.generateSecretSanta(names);
+
+    if (success && window.soundEngine) {
+      soundEngine.playWinFanfare();
     }
-    if (window.soundEngine) soundEngine.playWinFanfare();
   });
 
   // -------------------------------------------------------------
@@ -553,9 +660,14 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   btnGenerateRng.addEventListener('click', () => {
-    const min = parseInt(rngMin.value, 10) || 1;
-    const max = parseInt(rngMax.value, 10) || 100;
-    const count = parseInt(rngCount.value, 10) || 1;
+    const rawMin = parseInt(rngMin.value, 10);
+    const rawMax = parseInt(rngMax.value, 10);
+    const rawCount = parseInt(rngCount.value, 10);
+
+    const min = isNaN(rawMin) ? 1 : rawMin;
+    const max = isNaN(rawMax) ? 100 : rawMax;
+    const count = Math.max(1, isNaN(rawCount) ? 1 : rawCount);
+
     miniTools.generateRng(min, max, count);
   });
 
@@ -585,6 +697,19 @@ document.addEventListener('DOMContentLoaded', () => {
     themeIcon.setAttribute('data-lucide', savedTheme === 'dark' ? 'sun' : 'moon');
     if (window.lucide) lucide.createIcons();
   }
+
+  // Load Saved Sound
+  if (soundEngine.isMuted) {
+    soundIcon.setAttribute('data-lucide', 'volume-x');
+    if (window.lucide) lucide.createIcons();
+  }
+
+  // Load Saved Auto-Remove Option
+  const savedRemoveWinner = localStorage.getItem('app_remove_winner') === 'true';
+  chkRemoveWinner.checked = savedRemoveWinner;
+  chkRemoveWinner.addEventListener('change', () => {
+    localStorage.setItem('app_remove_winner', chkRemoveWinner.checked);
+  });
 
   // Load Initial Data
   loadInitialNames();

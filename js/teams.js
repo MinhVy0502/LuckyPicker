@@ -243,8 +243,10 @@ class TeamGenerator {
         alert('Đang tải thư viện xuất ảnh, vui lòng thử lại sau 1 giây.');
         return;
       }
+      const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+      const bgColor = isLight ? '#f8fafc' : '#0c0f17';
       const canvas = await html2canvas(containerEl, {
-        backgroundColor: '#0c0f17',
+        backgroundColor: bgColor,
         scale: 2,
         useCORS: true
       });

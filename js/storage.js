@@ -49,31 +49,47 @@ class DataManager {
     }
   }
 
-  // Parse raw text into clean array of names
+  // Parse raw text into clean array of names (handles CSV, Excel export, BOM)
   parseNames(rawText) {
     if (!rawText) return [];
+    // Strip UTF-8 BOM if present
+    const cleanText = rawText.replace(/^\uFEFF/, '');
     // Split by newlines, commas, or semicolons
-    const lines = rawText.split(/[\r\n,;]+/);
+    const lines = cleanText.split(/[\r\n,;]+/);
     const cleaned = lines
-      .map(name => name.trim())
+      .map(name => name.trim().replace(/^["']|["']$/g, ''))
       .filter(name => name.length > 0);
     return cleaned;
   }
 
-  // Get current active names from LocalStorage or textarea
+  // Get current active names from LocalStorage or textarea safely
   getCurrentNames() {
-    const saved = localStorage.getItem(this.STORAGE_KEY_NAMES);
-    return saved ? JSON.parse(saved) : [];
+    try {
+      const saved = localStorage.getItem(this.STORAGE_KEY_NAMES);
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      console.warn('Lỗi đọc danh sách tên từ localStorage:', e);
+      return [];
+    }
   }
 
   saveCurrentNames(namesArray) {
-    localStorage.setItem(this.STORAGE_KEY_NAMES, JSON.stringify(namesArray));
+    try {
+      localStorage.setItem(this.STORAGE_KEY_NAMES, JSON.stringify(namesArray));
+    } catch (e) {
+      console.warn('Lỗi lưu danh sách tên vào localStorage:', e);
+    }
   }
 
   // Presets Management
   getPresets() {
-    const data = localStorage.getItem(this.STORAGE_KEY_PRESETS);
-    return data ? JSON.parse(data) : [];
+    try {
+      const data = localStorage.getItem(this.STORAGE_KEY_PRESETS);
+      return data ? JSON.parse(data) : [];
+    } catch (e) {
+      console.warn('Lỗi đọc preset từ localStorage:', e);
+      return [];
+    }
   }
 
   savePreset(name, namesArray) {
@@ -85,21 +101,34 @@ class DataManager {
       names: namesArray
     };
     presets.unshift(newPreset);
-    localStorage.setItem(this.STORAGE_KEY_PRESETS, JSON.stringify(presets));
+    try {
+      localStorage.setItem(this.STORAGE_KEY_PRESETS, JSON.stringify(presets));
+    } catch (e) {
+      console.warn('Lỗi lưu preset:', e);
+    }
     return newPreset;
   }
 
   deletePreset(id) {
     let presets = this.getPresets();
     presets = presets.filter(p => p.id !== id);
-    localStorage.setItem(this.STORAGE_KEY_PRESETS, JSON.stringify(presets));
+    try {
+      localStorage.setItem(this.STORAGE_KEY_PRESETS, JSON.stringify(presets));
+    } catch (e) {
+      console.warn('Lỗi xóa preset:', e);
+    }
     return presets;
   }
 
   // Wheel history management
   getWheelHistory() {
-    const data = localStorage.getItem(this.STORAGE_KEY_WHEEL_HISTORY);
-    return data ? JSON.parse(data) : [];
+    try {
+      const data = localStorage.getItem(this.STORAGE_KEY_WHEEL_HISTORY);
+      return data ? JSON.parse(data) : [];
+    } catch (e) {
+      console.warn('Lỗi đọc lịch sử quay:', e);
+      return [];
+    }
   }
 
   addWheelWinner(name, mode = 'Vòng quay') {

@@ -156,9 +156,16 @@ class LuckyWheel {
 
     // Calculate current slice under top pointer (top is at -PI/2)
     const numSlices = this.names.length;
+    if (numSlices === 0) {
+      this.isSpinning = false;
+      return;
+    }
+
     const sliceAngle = (2 * Math.PI) / numSlices;
-    const normalizedAngle = (1.5 * Math.PI - this.currentAngle + 2 * Math.PI) % (2 * Math.PI);
-    const currentSliceIndex = Math.floor(normalizedAngle / sliceAngle);
+    // Proper Euclidean modulo in JS
+    const normalizedAngle = ((1.5 * Math.PI - this.currentAngle) % (2 * Math.PI) + (2 * Math.PI)) % (2 * Math.PI);
+    const rawSliceIndex = Math.floor(normalizedAngle / sliceAngle);
+    const currentSliceIndex = Math.min(numSlices - 1, Math.max(0, rawSliceIndex));
 
     // Sound tick on passing slice
     if (currentSliceIndex !== this.lastTickIndex) {
@@ -177,7 +184,7 @@ class LuckyWheel {
       this.draw();
 
       const winnerName = this.names[currentSliceIndex];
-      if (this.onFinishCallback) {
+      if (this.onFinishCallback && winnerName) {
         this.onFinishCallback(winnerName, currentSliceIndex);
       }
       return;

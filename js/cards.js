@@ -50,29 +50,44 @@ class CardsAndPairing {
 
     if (window.lucide) lucide.createIcons();
 
-    // Attach click flip event
+    // Attach click flip event (supports toggle open/close)
     const cards = this.cardsContainer.querySelectorAll('.card-flip-container');
     cards.forEach(card => {
       card.addEventListener('click', () => {
-        if (!card.classList.contains('is-flipped')) {
-          card.classList.add('is-flipped');
+        const isFlipped = card.classList.toggle('is-flipped');
+        if (isFlipped) {
           if (window.soundEngine) soundEngine.playPop();
           if (typeof confetti === 'function') {
             confetti({ particleCount: 30, spread: 50, origin: { y: 0.7 } });
           }
+        } else {
+          if (window.soundEngine) soundEngine.playPop();
         }
       });
     });
   }
 
   revealAllCards() {
-    const cards = this.cardsContainer.querySelectorAll('.card-flip-container:not(.is-flipped)');
-    cards.forEach((card, idx) => {
-      setTimeout(() => {
-        card.classList.add('is-flipped');
-        if (window.soundEngine) soundEngine.playPop();
-      }, idx * 100);
-    });
+    const allCards = this.cardsContainer.querySelectorAll('.card-flip-container');
+    if (allCards.length === 0) return;
+    const unflipped = this.cardsContainer.querySelectorAll('.card-flip-container:not(.is-flipped)');
+
+    if (unflipped.length > 0) {
+      unflipped.forEach((card, idx) => {
+        setTimeout(() => {
+          card.classList.add('is-flipped');
+          if (window.soundEngine) soundEngine.playPop();
+        }, idx * 60);
+      });
+    } else {
+      // If all are already open, flip all face-down smoothly
+      allCards.forEach((card, idx) => {
+        setTimeout(() => {
+          card.classList.remove('is-flipped');
+          if (window.soundEngine) soundEngine.playPop();
+        }, idx * 40);
+      });
+    }
   }
 
   // 2. Generate 1-on-1 Pairs
@@ -86,7 +101,7 @@ class CardsAndPairing {
         </div>
       `;
       if (window.lucide) lucide.createIcons();
-      return;
+      return false;
     }
 
     const shuffled = this.shuffle(names);
@@ -131,6 +146,7 @@ class CardsAndPairing {
     if (typeof confetti === 'function') {
       confetti({ particleCount: 60, spread: 70, origin: { y: 0.6 } });
     }
+    return true;
   }
 
   // 3. Generate Secret Santa (Gift exchange circle)
@@ -144,7 +160,7 @@ class CardsAndPairing {
         </div>
       `;
       if (window.lucide) lucide.createIcons();
-      return;
+      return false;
     }
 
     const shuffled = this.shuffle(names);
@@ -195,6 +211,7 @@ class CardsAndPairing {
     if (typeof confetti === 'function') {
       confetti({ particleCount: 50, spread: 60 });
     }
+    return true;
   }
 }
 
